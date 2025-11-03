@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Symptom Log</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <!-- Flatpickr CSS -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/themes/dark.css">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#84C7C3",
+                        "background-light": "#F9F9F9",
+                        "background-dark": "#111813",
+                        "text-light-primary": "#333333",
+                        "text-dark-primary": "#E0E0E0",
+                        "text-light-secondary": "#666666",
+                        "text-dark-secondary": "#A0A0A0",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1C2D23",
+                        "border-light": "#E0E0E0",
+                        "border-dark": "#2A3C31",
+                        "accent-light": "#F5B9A2",
+                        "accent-dark": "#F5B9A2",
+                    },
+                    fontFamily: {
+                        "display": ["Lexend", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.5rem", "lg": "0.75rem", "xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+    <style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            min-height: max(884px, 100dvh);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .pain-point {
+            position: absolute;
+            width: 20px;
+            height: 20px;
+            background-color: rgba(245, 185, 162, 0.7);
+            border: 2px solid #F5B9A2;
+            border-radius: 9999px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .pain-point:hover {
+            background-color: rgba(245, 185, 162, 0.9);
+            transform: scale(1.1);
+        }
+        .body-diagram-container {
+            position: relative;
+            cursor: crosshair;
+        }
+        .hidden {
+            display: none;
+        }
+        /* Flatpickr custom styling */
+        .flatpickr-calendar {
+            background: var(--calendar-bg) !important;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3) !important;
+            border: 1px solid var(--calendar-border) !important;
+            border-radius: 0.75rem !important;
+        }
+        .flatpickr-day.selected {
+            background: #84C7C3 !important;
+            border-color: #84C7C3 !important;
+        }
+        .flatpickr-day:hover {
+            background: rgba(132, 199, 195, 0.2) !important;
+        }
+        .dark .flatpickr-calendar {
+            --calendar-bg: #1C2D23;
+            --calendar-border: #2A3C31;
+        }
+        .flatpickr-calendar:not(.dark) {
+            --calendar-bg: #FFFFFF;
+            --calendar-border: #E0E0E0;
+        }
+    </style>
+</head>
+<body class="bg-background-light dark:bg-background-dark font-display">
+    <div class="relative flex min-h-screen w-full flex-col">
+        <!-- Top App Bar -->
+        <header class="sticky top-0 z-10 flex items-center justify-between border-b border-border-light dark:border-border-dark bg-background-light/80 dark:bg-background-dark/80 p-4 backdrop-blur-sm">
+            <div class="flex size-10 items-center justify-center cursor-pointer" id="close-btn">
+                <span class="material-symbols-outlined text-text-light-primary dark:text-text-dark-primary text-2xl">close</span>
+            </div>
+            <h1 class="text-lg font-bold leading-tight tracking-tight text-text-light-primary dark:text-text-dark-primary">Symptom Log</h1>
+            <div class="flex items-center gap-4">
+                <p class="text-primary text-base font-bold leading-normal cursor-pointer" id="history-btn">History</p>
+                <button class="flex size-10 items-center justify-center cursor-pointer hover:opacity-70 transition" id="logout-btn" title="Logout">
+                    <span class="material-symbols-outlined text-text-light-primary dark:text-text-dark-primary text-2xl">logout</span>
+                </button>
+            </div>
+        </header>
+
+        <main class="flex-1 px-4 py-6 space-y-6 pb-24">
+            <!-- Date & Time Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <details class="group" open>
+                    <summary class="flex cursor-pointer list-none items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                                <span class="material-symbols-outlined text-2xl">calendar_month</span>
+                            </div>
+                            <p class="text-base font-medium text-text-light-primary dark:text-text-dark-primary" id="datetime-display">Today, Morning</p>
+                        </div>
+                        <span class="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+                    </summary>
+                    <div class="mt-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="log-date">Date</label>
+                            <input class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="log-date" type="text" placeholder="Select date..."/>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2">Time of Day</label>
+                            <div class="flex gap-2">
+                                <button class="flex-1 h-10 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:bg-primary/20 hover:text-primary hover:border-primary transition-all time-of-day-btn" data-value="morning">Morning</button>
+                                <button class="flex-1 h-10 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:bg-primary/20 hover:text-primary hover:border-primary transition-all time-of-day-btn" data-value="afternoon">Afternoon</button>
+                                <button class="flex-1 h-10 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:bg-primary/20 hover:text-primary hover:border-primary transition-all time-of-day-btn" data-value="evening">Evening</button>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- Pain Location & Level Section -->
+            <section class="flex flex-col gap-4">
+                <h2 class="text-lg font-bold leading-tight text-text-light-primary dark:text-text-dark-primary">Pain Location & Level</h2>
+                <div class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                    <div class="flex h-10 w-full items-center justify-center rounded-lg bg-gray-200 dark:bg-gray-800 p-1 mb-4">
+                        <label class="flex h-full flex-1 cursor-pointer items-center justify-center rounded-md px-2 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary has-[:checked]:bg-background-light has-[:checked]:dark:bg-background-dark has-[:checked]:text-text-light-primary has-[:checked]:dark:text-text-dark-primary has-[:checked]:shadow-sm">
+                            <span>Front</span>
+                            <input checked class="invisible w-0" name="body-view" type="radio" value="front" id="view-front"/>
+                        </label>
+                        <label class="flex h-full flex-1 cursor-pointer items-center justify-center rounded-md px-2 text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary has-[:checked]:bg-background-light has-[:checked]:dark:bg-background-dark has-[:checked]:text-text-light-primary has-[:checked]:dark:text-text-dark-primary has-[:checked]:shadow-sm">
+                            <span>Back</span>
+                            <input class="invisible w-0" name="body-view" type="radio" value="back" id="view-back"/>
+                        </label>
+                    </div>
+                    <div class="relative w-full aspect-[2/3] max-w-sm mx-auto flex items-center justify-center body-diagram-container" id="body-diagram-container">
+                        <img class="h-full w-auto object-contain" id="body-diagram-img" src="FRONT.png" alt="Human body diagram"/>
+                        <!-- Pain points will be dynamically added here -->
+                    </div>
+                    <p class="text-xs text-center text-text-light-secondary dark:text-text-dark-secondary mt-2">Tap on the body to add pain points. Tap a point to remove it.</p>
+                </div>
+            </section>
+
+            <!-- Expandable Pain Details Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                                <span class="material-symbols-outlined text-2xl">local_fire_department</span>
+                            </div>
+                            <div class="flex flex-col">
+                                <h3 class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">Pain Details</h3>
+                                <p class="text-sm text-text-light-secondary dark:text-text-dark-secondary" id="pain-summary">Level 0, Not specified</p>
+                            </div>
+                        </div>
+                        <span class="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+                    </summary>
+                    <div class="mt-6 space-y-6">
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="pain-level">Pain Level: <span class="font-bold text-primary" id="pain-level-value">0</span></label>
+                            <input class="w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-lg appearance-none cursor-pointer accent-primary" id="pain-level" max="10" min="0" type="range" value="0"/>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="pain-type">Pain Type</label>
+                            <select class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="pain-type" multiple size="4">
+                                <option value="sharp">Sharp</option>
+                                <option value="dull">Dull</option>
+                                <option value="cramping">Cramping</option>
+                                <option value="throbbing">Throbbing</option>
+                                <option value="burning">Burning</option>
+                                <option value="pressure">Pressure</option>
+                                <option value="intermittent">Comes and goes</option>
+                                <option value="constant">Constant</option>
+                            </select>
+                            <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mt-1">Hold Ctrl/Cmd to select multiple</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="pain-desc">Pain Description</label>
+                            <textarea class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="pain-desc" placeholder="e.g., comes in waves, worse after eating..." rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2">Pain Triggers</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-trigger" value="after-eating"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">After eating</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-trigger" value="after-bm"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">After bowel movement</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-trigger" value="certain-foods"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Certain foods</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-trigger" value="movement"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Movement/activity</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-trigger" value="stress"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Stress</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2">Pain Relief</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-relief" value="heat"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Heat</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-relief" value="rest"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Rest</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-relief" value="bm"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Bowel movement</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-relief" value="medication"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Medication</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary pain-relief" value="position-change"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Position change</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- Bowel Movements Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                                <span class="material-symbols-outlined text-2xl">self_improvement</span>
+                            </div>
+                            <h3 class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">Bowel Movements</h3>
+                        </div>
+                        <span class="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+                    </summary>
+                    <div class="mt-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="bm-count">Number of bowel movements today</label>
+                            <input class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="bm-count" type="number" min="0" max="20" value="0"/>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="bm-consistency">Consistency (Bristol Stool Scale 1-7)</label>
+                            <select class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="bm-consistency">
+                                <option value="">Not recorded</option>
+                                <option value="1">1 - Separate hard lumps (very constipated)</option>
+                                <option value="2">2 - Lumpy and sausage-like</option>
+                                <option value="3">3 - Sausage with cracks</option>
+                                <option value="4">4 - Smooth, soft sausage (ideal)</option>
+                                <option value="5">5 - Soft blobs with clear edges</option>
+                                <option value="6">6 - Mushy, fluffy pieces</option>
+                                <option value="7">7 - Liquid, watery (diarrhea)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="bm-color">Color</label>
+                            <input class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="bm-color" type="text" placeholder="e.g., brown, dark, pale"/>
+                        </div>
+                        <div class="space-y-2">
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded text-primary focus:ring-primary" id="bm-mucus"/>
+                                <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Mucus present</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded text-primary focus:ring-primary" id="bm-blood"/>
+                                <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Blood present</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" class="rounded text-primary focus:ring-primary" id="bm-painful"/>
+                                <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Painful or straining</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2">Passage of gas</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="gas-passage" class="text-primary focus:ring-primary" value="normal"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Normal</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="gas-passage" class="text-primary focus:ring-primary" value="reduced"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Reduced</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="radio" name="gas-passage" class="text-primary focus:ring-primary" value="none"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">None</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- Eating & Drinking Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                                <span class="material-symbols-outlined text-2xl">restaurant</span>
+                            </div>
+                            <h3 class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">Eating & Drinking</h3>
+                        </div>
+                        <span class="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+                    </summary>
+                    <div class="mt-6 space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="meals-eaten">Meals eaten today</label>
+                            <textarea class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="meals-eaten" placeholder="Note major foods, especially high fiber, dairy, spicy, or fatty foods" rows="3"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2">Food categories consumed</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary food-category" value="high-fiber"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">High fiber</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary food-category" value="dairy"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Dairy</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary food-category" value="spicy"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Spicy</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary food-category" value="fatty"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Fatty/greasy</span>
+                                </label>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2" for="fluids-consumed">Fluids consumed</label>
+                            <textarea class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="fluids-consumed" placeholder="e.g., 6 glasses water, 2 cups coffee, 1 soda" rows="2"></textarea>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-text-light-secondary dark:text-text-dark-secondary mb-2">Symptoms after eating</label>
+                            <div class="space-y-2">
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary eating-symptom" value="nausea"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Nausea</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary eating-symptom" value="bloating"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Bloating</span>
+                                </label>
+                                <label class="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" class="rounded text-primary focus:ring-primary eating-symptom" value="early-fullness"/>
+                                    <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Early fullness</span>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- Other Symptoms Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                                <span class="material-symbols-outlined text-2xl">sentiment_stressed</span>
+                            </div>
+                            <h3 class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">Other Symptoms</h3>
+                        </div>
+                        <span class="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+                    </summary>
+                    <div class="mt-6 space-y-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded text-primary focus:ring-primary other-symptom" value="fever-chills"/>
+                            <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Fever or chills</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded text-primary focus:ring-primary other-symptom" value="nausea-vomiting"/>
+                            <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Nausea or vomiting</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded text-primary focus:ring-primary other-symptom" value="bloating-swelling"/>
+                            <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Bloating or visible abdominal swelling</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded text-primary focus:ring-primary other-symptom" value="appetite-change"/>
+                            <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Change in appetite</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded text-primary focus:ring-primary other-symptom" value="weight-change"/>
+                            <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Weight change</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded text-primary focus:ring-primary other-symptom" value="urinary-symptoms" id="urinary-checkbox"/>
+                            <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Urinary symptoms</span>
+                        </label>
+                        <div class="ml-6 mt-2 hidden" id="urinary-details">
+                            <textarea class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary text-sm" id="urinary-details-text" placeholder="e.g., pain, frequency, urgency" rows="2"></textarea>
+                        </div>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" class="rounded text-primary focus:ring-primary other-symptom" value="gynecologic-symptoms" id="gynecologic-checkbox"/>
+                            <span class="text-sm text-text-light-primary dark:text-text-dark-primary">Gynecologic symptoms</span>
+                        </label>
+                        <div class="ml-6 mt-2 hidden" id="gynecologic-details">
+                            <textarea class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary text-sm" id="gynecologic-details-text" placeholder="e.g., unusual discharge, pelvic pressure" rows="2"></textarea>
+                        </div>
+                    </div>
+                </details>
+            </section>
+
+            <!-- Medications & Remedies Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                                <span class="material-symbols-outlined text-2xl">medication</span>
+                            </div>
+                            <h3 class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">Medications & Remedies</h3>
+                        </div>
+                        <span class="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+                    </summary>
+                    <div class="mt-6 space-y-4">
+                        <div id="medications-list" class="space-y-3">
+                            <!-- Medications will be dynamically added here -->
+                        </div>
+                        <button class="w-full h-10 rounded-md border-2 border-dashed border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:border-primary hover:text-primary transition-all" id="add-medication-btn">
+                            + Add Medication
+                        </button>
+                    </div>
+                </details>
+            </section>
+
+            <!-- General Notes Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <details class="group">
+                    <summary class="flex cursor-pointer list-none items-center justify-between">
+                        <div class="flex items-center gap-3">
+                            <div class="flex size-10 items-center justify-center rounded-full bg-primary/20 text-primary">
+                                <span class="material-symbols-outlined text-2xl">edit_note</span>
+                            </div>
+                            <h3 class="text-base font-medium text-text-light-primary dark:text-text-dark-primary">General Notes</h3>
+                        </div>
+                        <span class="material-symbols-outlined text-2xl text-text-light-secondary dark:text-text-dark-secondary transition-transform duration-300 group-open:rotate-180">expand_more</span>
+                    </summary>
+                    <div class="mt-6 space-y-4">
+                        <textarea class="w-full rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary" id="general-notes" placeholder="Stress levels, menstrual cycle timing, travel, new foods, or other triggers..." rows="4"></textarea>
+                    </div>
+                </details>
+            </section>
+        </main>
+
+        <!-- Fixed Bottom CTA Button -->
+        <footer class="fixed bottom-0 left-0 right-0 z-10 bg-background-light/80 dark:bg-background-dark/80 p-4 backdrop-blur-sm border-t border-border-light dark:border-border-dark">
+            <button class="w-full h-12 rounded-lg bg-primary text-background-dark font-bold text-base shadow-lg hover:bg-primary/90 transition-all" id="save-log-btn">Save Log</button>
+        </footer>
+    </div>
+
+    <!-- Flatpickr JS -->
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+
+    <!-- PocketBase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.31.0/dist/pocketbase.umd.js"></script>
+
+    <!-- Storage Service - PocketBase Version -->
+    <script src="storage-pocketbase.js"></script>
+
+    <!-- Authentication Check -->
+    <script>
+        // Redirect to login if not authenticated
+        if (!StorageService.isAuthenticated()) {
+            window.location.href = 'auth.html';
+        }
+    </script>
+
+    <script src="app.js"></script>
+
+    <script>
+        // Initialize Flatpickr for the date input
+        const dateInput = document.getElementById('log-date');
+        const isDarkMode = document.documentElement.classList.contains('dark');
+
+        flatpickr(dateInput, {
+            dateFormat: "Y-m-d",
+            defaultDate: "today",
+            allowInput: true,
+            static: false,
+            monthSelectorType: 'static',
+            onReady: function(selectedDates, dateStr, instance) {
+                // Apply dark mode class to calendar if needed
+                if (isDarkMode) {
+                    instance.calendarContainer.classList.add('dark');
+                }
+            },
+            onChange: function(selectedDates, dateStr, instance) {
+                // Update the datetime display when date changes
+                if (window.updateDateTimeDisplay) {
+                    window.updateDateTimeDisplay();
+                }
+            }
+        });
+
+        // Watch for theme changes and update calendar
+        const observer = new MutationObserver(function(mutations) {
+            mutations.forEach(function(mutation) {
+                if (mutation.attributeName === 'class') {
+                    const calendar = dateInput._flatpickr.calendarContainer;
+                    if (document.documentElement.classList.contains('dark')) {
+                        calendar.classList.add('dark');
+                    } else {
+                        calendar.classList.remove('dark');
+                    }
+                }
+            });
+        });
+
+        observer.observe(document.documentElement, {
+            attributes: true
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(winget:*)",
+      "Bash(choco --version:*)",
+      "Bash(choco install:*)",
+      "Bash(gh:*)",
+      "Bash(mkdir:*)",
+      "Bash(curl:*)",
+      "Bash(tar:*)",
+      "Bash(powershell -Command \"Expand-Archive -Path pocketbase/pocketbase.zip -DestinationPath pocketbase -Force\")",
+      "Bash(dir:*)",
+      "Bash(.pocketbase.exe serve:*)",
+      "Bash(./pocketbase.exe serve:*)",
+      "Bash(findstr:*)",
+      "Bash(git --version:*)",
+      "Bash(where:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
