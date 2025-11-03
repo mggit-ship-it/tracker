@@ -94,6 +94,14 @@
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display">
     <div class="relative flex min-h-screen w-full flex-col">
+        <!-- Notification Toast -->
+        <div id="notification-toast" class="fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 opacity-0 pointer-events-none">
+            <div class="flex items-center gap-3">
+                <span class="material-symbols-outlined text-2xl" id="notification-icon">check_circle</span>
+                <span class="font-medium" id="notification-message">Log saved successfully!</span>
+            </div>
+        </div>
+
         <!-- Top App Bar -->
         <header class="sticky top-0 z-10 flex items-center justify-between border-b border-border-light dark:border-border-dark bg-background-light/80 dark:bg-background-dark/80 p-4 backdrop-blur-sm">
             <div class="flex size-10 items-center justify-center cursor-pointer" id="close-btn">
@@ -486,21 +494,31 @@
     <!-- Flatpickr JS -->
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
 
-    <!-- PocketBase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.31.0/dist/pocketbase.umd.js"></script>
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration
+        window.SUPABASE_URL = 'https://jehdsokdcqhdnzitcxkr.supabase.co';
+        window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplaGRzb2tkY3FoZG56aXRjeGtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxMzk2NDcsImV4cCI6MjA3NzcxNTY0N30.oHdHWnheSfpL1NuFUsl-E7-PJvZYHiF476NkQZgzZBA';
+    </script>
 
-    <!-- Storage Service - PocketBase Version -->
-    <script src="storage-pocketbase.js"></script>
+    <!-- Storage Service - Supabase Version -->
+    <script src="storage-supabase.js"></script>
 
     <!-- Authentication Check -->
     <script>
         // Redirect to login if not authenticated
-        if (!StorageService.isAuthenticated()) {
-            window.location.href = 'auth.html';
-        }
+        StorageService.init().then(() => {
+            if (!StorageService.isAuthenticated()) {
+                window.location.href = 'auth.html';
+            }
+        });
     </script>
 
     <script src="app.js"></script>
+
+    <!-- Unit Tests (comment out in production) -->
+    <!-- <script src="app.test.js"></script> -->
 
     <script>
         // Initialize Flatpickr for the date input

@@ -103,10 +103,22 @@ class AuthManager {
         try {
             const result = await StorageService.register(email, password, passwordConfirm);
             if (result.success) {
-                this.showSuccess('Account created successfully! Redirecting...');
-                setTimeout(() => {
-                    this.checkForMigration();
-                }, 500);
+                // Check if email confirmation is required
+                if (result.message) {
+                    // Email confirmation required
+                    this.showSuccess(result.message);
+                    // Switch to login tab after a delay
+                    setTimeout(() => {
+                        this.switchTab('login');
+                        this.showSuccess('Please check your email and click the confirmation link, then log in.');
+                    }, 3000);
+                } else {
+                    // No email confirmation required, user is logged in
+                    this.showSuccess('Account created successfully! Redirecting...');
+                    setTimeout(() => {
+                        this.checkForMigration();
+                    }, 500);
+                }
             } else {
                 this.showError(result.error || 'Registration failed. Please try again.');
             }
@@ -125,10 +137,13 @@ class AuthManager {
 
     checkForMigration() {
         const logs = JSON.parse(localStorage.getItem('symptom_logs') || '[]');
+        console.log('Checking for migration. Found', logs.length, 'localStorage logs');
         if (logs.length > 0) {
+            console.log('Showing migration notice');
             this.migrationNotice.classList.remove('hidden');
         } else {
             // No migration needed, redirect to app
+            console.log('No migration needed, redirecting to index.html');
             window.location.href = 'index.html';
         }
     }

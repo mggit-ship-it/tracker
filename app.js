@@ -12,9 +12,9 @@ class SymptomTracker {
         this.init();
     }
 
-    init() {
+    async init() {
         // Initialize storage
-        StorageService.init();
+        await StorageService.init();
 
         // Set default date and time
         this.setDefaultDateTime();
@@ -23,7 +23,7 @@ class SymptomTracker {
         this.bindEventListeners();
 
         // Check if editing existing log
-        this.checkForEditMode();
+        await this.checkForEditMode();
 
         // Start auto-save
         this.startAutoSave();
@@ -66,7 +66,10 @@ class SymptomTracker {
         const selectedTimeOfDay = this.getSelectedTimeOfDay();
 
         if (dateInput.value) {
-            const date = new Date(dateInput.value);
+            // Parse date string correctly to avoid timezone issues
+            // dateInput.value is in YYYY-MM-DD format
+            const [year, month, day] = dateInput.value.split('-').map(Number);
+            const date = new Date(year, month - 1, day); // month is 0-indexed
             const options = { month: 'short', day: 'numeric' };
             const dateStr = date.toLocaleDateString('en-US', options);
             const timeOfDayStr = selectedTimeOfDay.charAt(0).toUpperCase() + selectedTimeOfDay.slice(1);
@@ -99,14 +102,36 @@ class SymptomTracker {
         console.log('View front element:', viewFront);
         console.log('View back element:', viewBack);
 
-        viewFront.addEventListener('change', () => {
-            console.log('Front radio clicked');
-            this.switchBodyView('front');
-        });
-        viewBack.addEventListener('change', () => {
-            console.log('Back radio clicked');
-            this.switchBodyView('back');
-        });
+        if (viewFront && viewBack) {
+            viewFront.addEventListener('change', (e) => {
+                console.log('Front radio change event fired', e);
+                this.switchBodyView('front');
+            });
+
+            viewBack.addEventListener('change', (e) => {
+                console.log('Back radio change event fired', e);
+                this.switchBodyView('back');
+            });
+
+            // Also listen for clicks on the parent labels to ensure it works
+            viewFront.parentElement.addEventListener('click', () => {
+                console.log('Front label clicked');
+                if (!viewFront.checked) {
+                    viewFront.checked = true;
+                    this.switchBodyView('front');
+                }
+            });
+
+            viewBack.parentElement.addEventListener('click', () => {
+                console.log('Back label clicked');
+                if (!viewBack.checked) {
+                    viewBack.checked = true;
+                    this.switchBodyView('back');
+                }
+            });
+        } else {
+            console.error('Radio buttons not found!');
+        }
 
         // Pain level slider
         const painLevelSlider = document.getElementById('pain-level');
@@ -266,6 +291,27 @@ class SymptomTracker {
         this.currentBodyView = view;
         console.log('Switching to view:', view);
 
+        // Update radio buttons to match the current view
+        const viewFront = document.getElementById('view-front');
+        const viewBack = document.getElementById('view-back');
+        if (view === 'front') {
+            viewFront.checked = true;
+        } else if (view === 'back') {
+            viewBack.checked = true;
+        }
+
+        // Update body diagram image
+        const bodyDiagramImg = document.getElementById('body-diagram-img');
+        if (view === 'front') {
+            bodyDiagramImg.src = 'FRONT.png?' + Date.now(); // Cache bust
+            bodyDiagramImg.alt = 'Human body diagram - Front view';
+            console.log('Set image to FRONT.png');
+        } else if (view === 'back') {
+            bodyDiagramImg.src = 'back.png?' + Date.now(); // Cache bust
+            bodyDiagramImg.alt = 'Human body diagram - Back view';
+            console.log('Set image to back.png');
+        }
+
         // Hide all pain points and show only the current view
         document.querySelectorAll('.pain-point').forEach(point => {
             if (point.dataset.view === view) {
@@ -274,16 +320,6 @@ class SymptomTracker {
                 point.style.display = 'none';
             }
         });
-
-        // Update body diagram image
-        const bodyDiagramImg = document.getElementById('body-diagram-img');
-        if (view === 'front') {
-            bodyDiagramImg.src = 'FRONT.png';
-            console.log('Set image to FRONT.png');
-        } else if (view === 'back') {
-            bodyDiagramImg.src = 'back.png';
-            console.log('Set image to back.png');
-        }
     }
 
     updatePainSummary() {
@@ -345,8 +381,19 @@ class SymptomTracker {
     }
 
     getSelectedTimeOfDay() {
-        const selected = document.querySelector('.time-of-day-btn.bg-primary\\/20');
-        return selected ? selected.dataset.value : 'morning';
+        const selected = document.querySelector('.time-of-day-btn.bg-primary\\/20.text-primary.border-primary');
+        if (selected) {
+            return selected.dataset.value;
+        }
+        // Fallback: check which button has all three classes
+        const buttons = document.querySelectorAll('.time-of-day-btn');
+        for (const btn of buttons) {
+            if (btn.classList.contains('text-primary') &&
+                btn.classList.contains('border-primary')) {
+                return btn.dataset.value;
+            }
+        }
+        return 'morning';
     }
 
     getSelectedCheckboxes(selector) {
@@ -390,8 +437,13 @@ class SymptomTracker {
                 : ''
         };
 
+        // Get current time in HH:MM:SS format
+        const now = new Date();
+        const currentTime = now.toTimeString().split(' ')[0]; // "HH:MM:SS"
+
         return {
             date: document.getElementById('log-date').value,
+            time: currentTime,
             timeOfDay: this.getSelectedTimeOfDay(),
             pain: {
                 locations: this.painPoints,
@@ -422,29 +474,67 @@ class SymptomTracker {
         };
     }
 
+    showNotification(message, type = 'success') {
+        const toast = document.getElementById('notification-toast');
+        const icon = document.getElementById('notification-icon');
+        const messageEl = document.getElementById('notification-message');
+
+        // Set message
+        messageEl.textContent = message;
+
+        // Set icon and colors based on type
+        if (type === 'success') {
+            icon.textContent = 'check_circle';
+            toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 bg-green-500 text-white';
+        } else if (type === 'error') {
+            icon.textContent = 'error';
+            toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 bg-red-500 text-white';
+        } else if (type === 'info') {
+            icon.textContent = 'info';
+            toast.className = 'fixed top-20 left-1/2 transform -translate-x-1/2 z-50 px-6 py-3 rounded-lg shadow-lg transition-all duration-300 bg-blue-500 text-white';
+        }
+
+        // Show toast
+        toast.classList.remove('opacity-0', 'pointer-events-none');
+        toast.classList.add('opacity-100');
+
+        // Hide after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('opacity-100');
+            toast.classList.add('opacity-0', 'pointer-events-none');
+        }, 3000);
+    }
+
     async saveLog() {
         const data = this.collectFormData();
 
         // Validation
         if (!data.date) {
-            alert('Please select a date for this log.');
+            this.showNotification('Please select a date for this log.', 'error');
             return;
         }
 
         try {
             if (this.editingLogId) {
                 await StorageService.updateLog(this.editingLogId, data);
-                alert('Log updated successfully!');
+                this.showNotification('Log updated successfully!', 'success');
             } else {
                 await StorageService.saveLog(data);
-                alert('Log saved successfully!');
+                this.showNotification('Log saved successfully!', 'success');
             }
 
             this.unsavedChanges = false;
-            this.clearForm();
+
+            // Clear the draft from localStorage
+            localStorage.removeItem('symptom_log_draft');
+
+            // Clear form after a brief delay to allow user to see the notification
+            setTimeout(() => {
+                this.clearForm();
+            }, 500);
         } catch (error) {
             console.error('Error saving log:', error);
-            alert('Error saving log. Please try again.');
+            this.showNotification('Error saving log. Please try again.', 'error');
         }
     }
 
@@ -504,8 +594,18 @@ class SymptomTracker {
     }
 
     loadFormData(data) {
+        console.log('[App] Loading form data:', data);
+
         // Load data into form (for editing or restoring draft)
-        if (data.date) document.getElementById('log-date').value = data.date;
+        if (data.date) {
+            const dateInput = document.getElementById('log-date');
+            // Update Flatpickr if it's initialized
+            if (dateInput._flatpickr) {
+                dateInput._flatpickr.setDate(data.date, true);
+            } else {
+                dateInput.value = data.date;
+            }
+        }
         if (data.timeOfDay) this.selectTimeOfDay(data.timeOfDay);
 
         this.updateDateTimeDisplay();
@@ -607,17 +707,22 @@ class SymptomTracker {
         }
     }
 
-    checkForEditMode() {
+    async checkForEditMode() {
         // Check URL params for edit mode
         const urlParams = new URLSearchParams(window.location.search);
         const editId = urlParams.get('edit');
 
+        console.log('[App] Checking for edit mode, editId:', editId);
+
         if (editId) {
-            const log = StorageService.getLogById(editId);
+            const log = await StorageService.getLogById(editId);
+            console.log('[App] Retrieved log for editing:', log);
             if (log) {
                 this.editingLogId = editId;
                 this.loadFormData(log);
                 document.querySelector('h1').textContent = 'Edit Symptom Log';
+            } else {
+                console.error('[App] No log found with id:', editId);
             }
         }
     }

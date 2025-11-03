@@ -3,10 +3,14 @@
 <head>
     <meta charset="utf-8"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <title>Symptom History</title>
+    <title>Symptom History & Trends</title>
     <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;700&display=swap" rel="stylesheet"/>
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined" rel="stylesheet"/>
+    <!-- Chart.js for data visualization -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    <!-- jsPDF for PDF export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -47,6 +51,36 @@
         .hidden {
             display: none;
         }
+        .spinner {
+            border: 3px solid rgba(132, 199, 195, 0.3);
+            border-top: 3px solid #84C7C3;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Chart container styles */
+        .chart-container {
+            position: relative;
+            height: 250px;
+            margin: 1rem 0;
+        }
+        /* Print styles for doctor reports */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+            body {
+                background: white !important;
+            }
+            .bg-card-dark {
+                background: white !important;
+            }
+        }
     </style>
 </head>
 <body class="bg-background-light dark:bg-background-dark font-display">
@@ -56,9 +90,12 @@
             <div class="flex size-10 items-center justify-center cursor-pointer" id="back-btn">
                 <span class="material-symbols-outlined text-text-light-primary dark:text-text-dark-primary text-2xl">arrow_back</span>
             </div>
-            <h1 class="text-lg font-bold leading-tight tracking-tight text-text-light-primary dark:text-text-dark-primary">History</h1>
+            <h1 class="text-lg font-bold leading-tight tracking-tight text-text-light-primary dark:text-text-dark-primary">Trend Analysis</h1>
             <div class="flex items-center gap-2">
-                <button class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary" id="export-btn" title="Export data">
+                <button class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary no-print" id="print-report-btn" title="Print Report">
+                    <span class="material-symbols-outlined text-2xl">print</span>
+                </button>
+                <button class="text-text-light-secondary dark:text-text-dark-secondary hover:text-primary no-print" id="export-btn" title="Export data">
                     <span class="material-symbols-outlined text-2xl">download</span>
                 </button>
                 <button class="flex size-10 items-center justify-center cursor-pointer hover:opacity-70 transition" id="logout-btn" title="Logout">
@@ -68,33 +105,148 @@
         </header>
 
         <main class="flex-1 px-4 py-6 space-y-4 pb-24">
-            <!-- Search and Filter Section -->
-            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+            <!-- Date Range & Filter Section -->
+            <section class="flex flex-col gap-3 rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm no-print">
+                <h3 class="text-sm font-bold text-text-light-primary dark:text-text-dark-primary flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">date_range</span>
+                    Date Range & Filters
+                </h3>
+                <div class="flex gap-2 flex-wrap">
+                    <button class="flex-1 min-w-[100px] h-9 rounded-md bg-primary/20 text-primary hover:bg-primary/30 transition-all text-xs font-medium date-preset-btn" data-days="7">Last 7 Days</button>
+                    <button class="flex-1 min-w-[100px] h-9 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:border-primary hover:text-primary transition-all text-xs font-medium date-preset-btn" data-days="30">Last 30 Days</button>
+                    <button class="flex-1 min-w-[100px] h-9 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:border-primary hover:text-primary transition-all text-xs font-medium date-preset-btn" data-days="90">Last 90 Days</button>
+                    <button class="flex-1 min-w-[100px] h-9 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:border-primary hover:text-primary transition-all text-xs font-medium date-preset-btn" data-days="all">All Time</button>
+                </div>
                 <div class="flex gap-2">
                     <input type="date" id="filter-start-date" class="flex-1 rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary text-sm" placeholder="Start date"/>
                     <input type="date" id="filter-end-date" class="flex-1 rounded-md border-border-light dark:border-border-dark bg-background-light dark:bg-background-dark text-text-light-primary dark:text-text-dark-primary focus:border-primary focus:ring-primary text-sm" placeholder="End date"/>
                 </div>
                 <div class="flex gap-2">
-                    <button class="flex-1 h-9 rounded-md bg-primary/20 text-primary hover:bg-primary/30 transition-all text-sm font-medium" id="filter-apply-btn">Apply Filter</button>
-                    <button class="flex-1 h-9 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:border-primary hover:text-primary transition-all text-sm font-medium" id="filter-clear-btn">Clear</button>
+                    <button class="flex-1 h-9 rounded-md bg-primary text-background-dark hover:bg-primary/90 transition-all text-sm font-medium" id="filter-apply-btn">Apply Custom Range</button>
+                    <button class="flex-1 h-9 rounded-md border border-border-light dark:border-border-dark text-text-light-secondary dark:text-text-dark-secondary hover:border-primary hover:text-primary transition-all text-sm font-medium" id="filter-clear-btn">Clear All</button>
                 </div>
             </section>
 
-            <!-- Stats Summary -->
-            <section class="grid grid-cols-2 gap-3">
+            <!-- Key Metrics Cards -->
+            <section class="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
-                    <p class="text-sm text-text-light-secondary dark:text-text-dark-secondary">Total Logs</p>
+                    <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mb-1">Total Logs</p>
                     <p class="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary" id="total-logs">0</p>
                 </div>
                 <div class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
-                    <p class="text-sm text-text-light-secondary dark:text-text-dark-secondary">Avg Pain Level</p>
+                    <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mb-1">Avg Pain</p>
                     <p class="text-2xl font-bold text-text-light-primary dark:text-text-dark-primary" id="avg-pain">0</p>
+                    <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mt-1" id="pain-trend"></p>
+                </div>
+                <div class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                    <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mb-1">High Pain Days</p>
+                    <p class="text-2xl font-bold text-red-500" id="high-pain-days">0</p>
+                    <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mt-1">Pain ≥ 7</p>
+                </div>
+                <div class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                    <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mb-1">Red Flags</p>
+                    <p class="text-2xl font-bold text-red-500" id="red-flag-count">0</p>
+                    <p class="text-xs text-text-light-secondary dark:text-text-dark-secondary mt-1">Blood/Fever</p>
+                </div>
+            </section>
+
+            <!-- Pain Level Trend Chart -->
+            <section class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <h3 class="text-base font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">show_chart</span>
+                    Pain Level Trend
+                </h3>
+                <div class="chart-container">
+                    <canvas id="pain-trend-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Symptom Frequency Analysis -->
+            <section class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <h3 class="text-base font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">bar_chart</span>
+                    Symptom Frequency
+                </h3>
+                <div class="chart-container">
+                    <canvas id="symptom-frequency-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Pain Location Heat Map -->
+            <section class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <h3 class="text-base font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">personal_injury</span>
+                    Most Common Pain Locations
+                </h3>
+                <div id="pain-location-heatmap" class="flex justify-center gap-6 py-4">
+                    <!-- Heat map will be rendered here -->
+                </div>
+                <div id="pain-location-list" class="mt-4 space-y-2">
+                    <!-- Pain location frequency list -->
+                </div>
+            </section>
+
+            <!-- Medication Effectiveness -->
+            <section class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <h3 class="text-base font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">medication</span>
+                    Medication Effectiveness
+                </h3>
+                <div class="chart-container">
+                    <canvas id="medication-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- Pattern Insights -->
+            <section class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <h3 class="text-base font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">psychology</span>
+                    Pattern Insights
+                </h3>
+                <div id="pattern-insights" class="space-y-3">
+                    <!-- Insights will be dynamically added -->
+                </div>
+            </section>
+
+            <!-- Bowel Movement Trends -->
+            <section class="rounded-lg bg-card-light dark:bg-card-dark p-4 shadow-sm">
+                <h3 class="text-base font-bold text-text-light-primary dark:text-text-dark-primary mb-3 flex items-center gap-2">
+                    <span class="material-symbols-outlined text-primary">self_improvement</span>
+                    Bowel Movement Trends
+                </h3>
+                <div class="chart-container">
+                    <canvas id="bowel-trend-chart"></canvas>
+                </div>
+            </section>
+
+            <!-- View Mode Toggle -->
+            <section class="rounded-lg bg-card-light dark:bg-card-dark p-3 shadow-sm no-print">
+                <div class="flex items-center justify-between">
+                    <h3 class="text-sm font-bold text-text-light-primary dark:text-text-dark-primary">Detailed Logs</h3>
+                    <button id="toggle-logs-btn" class="text-sm text-primary hover:text-primary/80 transition-all flex items-center gap-1">
+                        <span id="toggle-logs-text">Show All</span>
+                        <span class="material-symbols-outlined text-lg" id="toggle-logs-icon">expand_more</span>
+                    </button>
                 </div>
             </section>
 
             <!-- Logs List -->
-            <section id="logs-container" class="space-y-3">
+            <section id="logs-container" class="space-y-3 hidden">
                 <!-- Logs will be dynamically inserted here -->
+            </section>
+
+            <!-- Loading State -->
+            <section id="loading-state" class="flex flex-col items-center justify-center py-12 text-center">
+                <div class="spinner mb-4"></div>
+                <p class="text-sm text-text-light-secondary dark:text-text-dark-secondary">Loading your logs...</p>
+            </section>
+
+            <!-- Error State -->
+            <section id="error-state" class="hidden flex flex-col items-center justify-center py-12 text-center">
+                <span class="material-symbols-outlined text-6xl text-red-500 mb-4">error</span>
+                <p class="text-lg font-medium text-text-light-primary dark:text-text-dark-primary mb-2">Error Loading Logs</p>
+                <p class="text-sm text-text-light-secondary dark:text-text-dark-secondary mb-6" id="error-message">Unable to fetch your logs. Please try again.</p>
+                <button onclick="location.reload()" class="px-6 py-3 rounded-lg bg-primary text-background-dark font-bold hover:bg-primary/90 transition-all">Retry</button>
             </section>
 
             <!-- Empty State -->
@@ -120,6 +272,10 @@
         <div class="bg-card-light dark:bg-card-dark rounded-lg p-6 max-w-sm w-full shadow-xl">
             <h2 class="text-lg font-bold text-text-light-primary dark:text-text-dark-primary mb-4">Export Data</h2>
             <div class="space-y-3">
+                <button class="w-full h-12 rounded-lg bg-primary text-background-dark hover:bg-primary/90 transition-all flex items-center justify-center gap-2 font-medium" id="export-pdf-btn">
+                    <span class="material-symbols-outlined">picture_as_pdf</span>
+                    Doctor Visit Report (PDF)
+                </button>
                 <button class="w-full h-12 rounded-lg border-2 border-border-light dark:border-border-dark text-text-light-primary dark:text-text-dark-primary hover:border-primary hover:text-primary transition-all flex items-center justify-center gap-2" id="export-json-btn">
                     <span class="material-symbols-outlined">code</span>
                     Export as JSON
@@ -135,20 +291,32 @@
         </div>
     </div>
 
-    <!-- PocketBase SDK -->
-    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.31.0/dist/pocketbase.umd.js"></script>
-
-    <!-- Storage Service - PocketBase Version -->
-    <script src="storage-pocketbase.js"></script>
-
-    <!-- Authentication Check -->
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script>
-        // Redirect to login if not authenticated
-        if (!StorageService.isAuthenticated()) {
-            window.location.href = 'auth.html';
-        }
+        // Supabase configuration
+        window.SUPABASE_URL = 'https://jehdsokdcqhdnzitcxkr.supabase.co';
+        window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplaGRzb2tkY3FoZG56aXRjeGtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxMzk2NDcsImV4cCI6MjA3NzcxNTY0N30.oHdHWnheSfpL1NuFUsl-E7-PJvZYHiF476NkQZgzZBA';
+
+        // IMMEDIATE AUTH CHECK - Redirect before loading anything else
+        (async function() {
+            console.log('[History] Checking authentication before page load...');
+            const supabase = window.supabase.createClient(window.SUPABASE_URL, window.SUPABASE_ANON_KEY);
+            const { data: { session } } = await supabase.auth.getSession();
+
+            if (!session) {
+                console.log('[History] No session found - redirecting to auth.html');
+                window.location.href = 'auth.html';
+            } else {
+                console.log('[History] Session found - user is authenticated');
+            }
+        })();
     </script>
 
+    <!-- Storage Service - Supabase Version -->
+    <script src="storage-supabase.js"></script>
+
+    <!-- History viewer handles authentication check internally -->
     <script src="history.js"></script>
 </body>
 </html>

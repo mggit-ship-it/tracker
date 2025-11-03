@@ -126,8 +126,13 @@
     </div>
 
     <!-- Scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/pocketbase@0.31.0/dist/pocketbase.umd.js"></script>
-    <script src="storage-pocketbase.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script>
+        // Supabase configuration
+        window.SUPABASE_URL = 'https://jehdsokdcqhdnzitcxkr.supabase.co';
+        window.SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImplaGRzb2tkY3FoZG56aXRjeGtyIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjIxMzk2NDcsImV4cCI6MjA3NzcxNTY0N30.oHdHWnheSfpL1NuFUsl-E7-PJvZYHiF476NkQZgzZBA';
+    </script>
+    <script src="storage-supabase.js"></script>
     <script src="auth.js"></script>
 </body>
 </html>
