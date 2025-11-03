@@ -303,9 +303,9 @@ class SymptomTracker {
         // Update body diagram image
         const bodyDiagramImg = document.getElementById('body-diagram-img');
         if (view === 'front') {
-            bodyDiagramImg.src = 'FRONT.png?' + Date.now(); // Cache bust
+            bodyDiagramImg.src = 'front.png?' + Date.now(); // Cache bust
             bodyDiagramImg.alt = 'Human body diagram - Front view';
-            console.log('Set image to FRONT.png');
+            console.log('Set image to front.png');
         } else if (view === 'back') {
             bodyDiagramImg.src = 'back.png?' + Date.now(); // Cache bust
             bodyDiagramImg.alt = 'Human body diagram - Back view';

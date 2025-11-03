@@ -652,7 +652,7 @@ class HistoryViewer {
 
         // Draw heat maps on canvas
         setTimeout(() => {
-            this.drawHeatMap('front-heatmap-canvas', 'FRONT.png', allLocations.filter(loc => loc.view === 'front'));
+            this.drawHeatMap('front-heatmap-canvas', 'front.png', allLocations.filter(loc => loc.view === 'front'));
             this.drawHeatMap('back-heatmap-canvas', 'back.png', allLocations.filter(loc => loc.view === 'back'));
         }, 0);
 
